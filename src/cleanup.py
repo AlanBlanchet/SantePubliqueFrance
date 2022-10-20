@@ -19,6 +19,8 @@ data = data.filter(
         "image_url",
         "image_small_url",
         "nutrition-score-fr_100g",
+        "additives_n",
+        "fat_100g",
     ],
     axis=1,
 )
@@ -94,3 +96,33 @@ data.drop("countries_tags", axis=1, inplace=True)
 # Retirer les lignes qui n'ont pas de pays
 defined_countries = ~data["countries"].isna()
 data = data.loc[defined_countries]
+
+# NUTRI-SCORE
+missing = data["nutrition-score-fr_100g"].isna() | (
+    data["nutrition-score-fr_100g"].isin(["nan"])
+)
+# Les valeurs du nutriscore qui ne sont pas définies pourront être potentiellement calculées plus tard.
+# Pour le moment on se contente de supprimer les lignes où le nutriscore est null
+data = data[~missing]
+
+# On recalcule le nutri score depuis les valeurs numériques
+data["nutri_score"] = pd.cut(
+    data["nutrition-score-fr_100g"],
+    bins=[-15, 0, 3, 11, 19, 40],
+    labels=["A", "B", "C", "D", "E"],
+)
+
+# ------------ FAT
+fat_100g = data.loc[data["fat_100g"].notna(), "fat_100g"]
+
+fat_100g_correct = (
+    data["fat_100g"].notna() & (data["fat_100g"] <= 100) & (data["fat_100g"] >= 0)
+)
+fat_100g = data.loc[fat_100g_correct, "fat_100g"]
+
+# Maintenant qu'on a identifié les valeurs atypiques, on peut les traiter
+# On pourra utiliser la moyenne pour traiter les valeurs manquantes puisqu'elle n'est désormais plus affaiblie par les valeurs abbérantes.
+# En effet, il n'y a que des valeurs correctes. Donc la moyenne ne sera pas affectée par des valeurs abbérantes. On aurait pu remplacer par la valeur médiane pour faire notre correction. (sans filtrer les valeurs abbérantes)
+data.loc[~fat_100g_correct, "fat_100g"] = fat_100g.mean()
+
+data.reset_index(drop=True, inplace=True)
