@@ -21,6 +21,8 @@ data = data.filter(
         "nutrition-score-fr_100g",
         "additives_n",
         "fat_100g",
+        "saturated-fat_100g",
+        "energy_100g"
     ],
     axis=1,
 )
